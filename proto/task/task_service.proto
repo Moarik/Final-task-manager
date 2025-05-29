@@ -1,0 +1,67 @@
+syntax = "proto3";
+
+package task;
+option go_package = "./task";
+
+import "google/protobuf/timestamp.proto";
+
+message Empty {}
+
+message Task {
+  string task_id = 1;
+  string user_id = 2;
+  string title = 3;
+  string description = 4;
+  bool is_completed = 5;
+  google.protobuf.Timestamp created_at = 6;
+  google.protobuf.Timestamp updated_at = 7;
+}
+
+message CreateUserTaskRequest {
+  string user_id = 1;
+  string title = 2;
+  string description = 3;
+}
+
+message TaskResponse {
+  Task task = 1;
+}
+
+message TasksResponse {
+  repeated Task task = 1;
+}
+
+message GetUserTaskByIDRequest {
+  string task_id = 1;
+  string user_id = 2;
+}
+
+message DeleteUserTaskByIDRequest {
+  string task_id = 1;
+  string user_id = 2;
+}
+
+message UpdateUserTaskRequest {
+  string user_id = 1;
+  string task_id = 2;
+  string title = 3;
+  string description = 4;
+  bool is_completed = 5;
+}
+
+message GetUserAllTaskRequest {
+  string user_id = 1;
+}
+
+message GetTaskByIDRequest {
+  string task_id = 1;
+}
+
+service TaskService {
+  rpc CreateUserTask(CreateUserTaskRequest) returns(TaskResponse);
+  rpc GetUserTaskByID(GetUserTaskByIDRequest) returns(TaskResponse);
+  rpc GetUserAllTask(GetUserAllTaskRequest) returns(TasksResponse);
+  rpc GetTaskByID(GetTaskByIDRequest) returns(TaskResponse);
+  rpc DeleteUserTaskByID(DeleteUserTaskByIDRequest) returns(Empty);
+  rpc UpdateUserTask(UpdateUserTaskRequest) returns(TaskResponse);
+}
