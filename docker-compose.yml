@@ -1,0 +1,134 @@
+name: task_manager_final
+services:
+  redis:
+    container_name: redis_cache
+    image: redis:latest
+    env_file:
+      - ./user/.env
+    ports:
+      - "7123:6379"
+    networks:
+      - app-network
+  nats:
+    container_name: nats_server
+    image: nats:latest
+    ports:
+      - "4222:4222"
+      - "8222:8222"
+    networks:
+      - app-network
+    command: [ "--config", "/nats-server.conf" ]
+    healthcheck:
+      test: [ "CMD", "/nats-server", "--help" ]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 2s
+  user_db:
+    container_name: user_db
+    image: postgres:15
+    restart: always
+    env_file:
+      - ./user/.env
+    ports:
+      - "5433:5432"
+    networks:
+      - app-network
+    healthcheck:
+      test: [ "CMD", "pg_isready", "-U", "postgres" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+  task_db:
+    container_name: task_db
+    image: postgres:15
+    restart: always
+    env_file:
+      - ./task/.env
+    ports:
+      - "5434:5432"
+    networks:
+      - app-network
+    healthcheck:
+      test: [ "CMD", "pg_isready", "-U", "postgres" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+  statistics_db:
+    container_name: statistics_db
+    image: postgres:15
+    restart: always
+    env_file:
+      - ./statistics/.env
+    ports:
+      - "5435:5432"
+    networks:
+      - app-network
+    healthcheck:
+      test: [ "CMD", "pg_isready", "-U", "postgres" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+  user:
+    container_name: user_service
+    build:
+      context: .
+      dockerfile: ./user/Dockerfile
+    ports:
+      - "8081:8081"
+    env_file:
+      - ./user/.env
+    depends_on:
+      user_db:
+        condition: service_healthy
+    networks:
+      - app-network
+  task:
+    container_name: task_service
+    build:
+      context: .
+      dockerfile: ./task/Dockerfile
+    ports:
+      - "8082:8082"
+    env_file:
+      - ./task/.env
+    depends_on:
+      task_db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - app-network
+  statistics:
+    container_name: statistics_service
+    build:
+      context: .
+      dockerfile: ./statistics/Dockerfile
+    ports:
+      - "8083:8083"
+    env_file:
+      - ./statistics/.env
+    networks:
+      - app-network
+    depends_on:
+      statistics_db:
+        condition: service_healthy
+  api-gateway:
+    container_name: api_gateway
+    build:
+      context: .
+      dockerfile: ./api-gateway/Dockerfile
+    ports:
+      - "8080:8080"
+    env_file:
+      - ./api-gateway/.env
+    depends_on:
+      - user
+      - task
+      - statistics
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
